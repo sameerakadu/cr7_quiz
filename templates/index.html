@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cristiano Ronaldo Quiz</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; }
+        .container { max-width: 500px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px #ccc; }
+        h1 { text-align: center; }
+        .question { font-size: 1.2em; margin-bottom: 20px; }
+        .options { margin-bottom: 20px; }
+        .options button { display: block; width: 100%; margin: 8px 0; padding: 10px; font-size: 1em; border-radius: 5px; border: 1px solid #ddd; cursor: pointer; background: #e9e9e9; }
+        .options button:disabled { background: #ccc; }
+        .status { font-weight: bold; margin-bottom: 20px; }
+        .next-btn { padding: 10px 20px; font-size: 1em; border-radius: 5px; border: none; background: #007bff; color: #fff; cursor: pointer; }
+        .next-btn:disabled { background: #aaa; }
+    </style>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+    // List of Ronaldo images (10 images)
+    let bgImages = [
+        '/static/ronaldo1.jpg',
+        '/static/ronaldo2.jpg',
+        '/static/ronaldo3.jpg',
+        '/static/ronaldo4.jpg',
+        '/static/ronaldo5.jpg',
+        '/static/ronaldo6.jpg',
+        '/static/ronaldo7.jpg',
+        '/static/ronaldo8.jpg',
+        '/static/ronaldo9.jpg',
+        '/static/ronaldo10.jpg'
+    ];
+    // Shuffle images once per session
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+    shuffle(bgImages);
+    let bgIdx = 0;
+    function setBackground() {
+        document.body.style.backgroundImage = `url('${bgImages[bgIdx % bgImages.length]}')`;
+    }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>⚽ Cristiano Ronaldo Quiz 🐐</h1>
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+    <div class="status" id="status"></div>
+    <button class="next-btn" id="next" disabled>Next</button>
+    <div id="score" style="margin-top:20px;"></div>
+</div>
+<script>
+let questions = [];
+let qIdx = 0;
+let score = 0;
+
+function loadQuestions() {
+    fetch('/get_questions')
+        .then(res => res.json())
+        .then(data => {
+            questions = data;
+            qIdx = 0;
+            score = 0;
+            showQuestion();
+        });
+}
+
+function showQuestion() {
+    setBackground();
+    if (qIdx < questions.length) {
+        document.getElementById('question').textContent = `Q${qIdx+1}: ${questions[qIdx].question}`;
+        let opts = '';
+        questions[qIdx].options.forEach((opt, i) => {
+            opts += `<button onclick="checkAnswer(${i})" id="opt${i}">${opt}</button>`;
+        });
+        document.getElementById('options').innerHTML = opts;
+        document.getElementById('status').textContent = '';
+        document.getElementById('next').disabled = true;
+    } else {
+        showResult();
+    }
+}
+
+function checkAnswer(optIdx) {
+    fetch('/check_answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q_idx: qIdx, selected: questions[qIdx].options[optIdx] })
+    })
+    .then(res => res.json())
+    .then(data => {
+        // Disable only the rendered option buttons
+        questions[qIdx].options.forEach((_, i) => {
+            const btn = document.getElementById('opt'+i);
+            if (btn) btn.disabled = true;
+        });
+        if (data.correct) {
+            score++;
+            document.getElementById('status').textContent = '✅ Correct!';
+            document.getElementById('status').style.color = 'green';
+        } else {
+            document.getElementById('status').textContent = `❌ Wrong! Correct: ${data.answer}`;
+            document.getElementById('status').style.color = 'red';
+        }
+        document.getElementById('next').disabled = false;
+    });
+}
+
+document.getElementById('next').onclick = function() {
+    qIdx++;
+    bgIdx++;
+    showQuestion();
+};
+
+function showResult() {
+    let msg = `Your final score: ${score}/${questions.length}<br>`;
+    if (score === questions.length) {
+        msg += "🎉 Incredible! You’re a true Ronaldo legend!";
+    } else if (score >= questions.length * 0.7) {
+        msg += "🔥 Great job! You really know your CR7 facts!";
+    } else if (score >= questions.length * 0.4) {
+        msg += "⚽ Not bad! A few more games and you’ll be a pro!";
+    } else {
+        msg += "😅 Time to watch some Ronaldo highlights and try again!";
+    }
+    document.getElementById('question').textContent = '';
+    document.getElementById('options').innerHTML = '';
+    document.getElementById('status').textContent = '';
+    document.getElementById('next').style.display = 'none';
+    document.getElementById('score').innerHTML = msg;
+}
+
+loadQuestions();
+</script>
+</body>
+</html>

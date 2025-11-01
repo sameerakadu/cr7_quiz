@@ -1,0 +1,11 @@
+/* Add this to templates/index.html or a new static/style.css file */
+body {
+    font-family: Arial, sans-serif;
+    background: url('/static/ronaldo1.jpg') no-repeat center center fixed;
+    background-size: cover;
+    transition: background-image 0.5s ease-in-out;
+}
+.container {
+    background: rgba(255,255,255,0.92);
+    /* ...existing styles... */
+}
